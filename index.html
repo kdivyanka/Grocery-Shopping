@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Grocery Shop</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(to right, #e3f2fd, #e0f7fa);
+      color: #333;
+    }
+
+    h2, h3 {
+      color: #2e7d32;
+    }
+
+    input, button {
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      background-color: #43a047;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #388e3c;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background-color: #ffffffcc;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .product, .cart-item {
+      background: #fafafa;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 10px;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .product img {
+      height: 50px;
+      width: 50px;
+      border-radius: 8px;
+      margin-right: 10px;
+    }
+
+    .product-info {
+      display: flex;
+      align-items: center;
+    }
+
+    .cart {
+      background: #e8f5e9;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .total {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Page -->
+  <div class="container" id="login-section">
+    <h2>🔐 Login to Grocery Shop</h2>
+    <label for="loginName">Enter your name:</label><br>
+    <input type="text" id="loginName" placeholder="e.g. Aanya" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <!-- Main Grocery Shop Section -->
+  <div class="container hidden" id="shop-section">
+    <h2>🛒 Welcome to Simple Grocery Shop</h2>
+    <p id="greeting"></p>
+
+    <hr>
+
+    <h3>🧺 Available Items:</h3>
+    <div id="products"></div>
+
+    <hr>
+
+    <h3>🛍 Your Cart:</h3>
+    <div class="cart" id="cart">No items yet.</div>
+    <button onclick="placeOrder()">Place Order</button>
+  </div>
+
+  <script>
+    let userName = "";
+    let cart = [];
+
+    const items = [
+      { id: 1, name: "Apples", price: 30, image: "https://upload.wikimedia.org/wikipedia/commons/1/15/Red_Apple.jpg" },
+      { id: 2, name: "Bananas", price: 10, image: "https://upload.wikimedia.org/wikipedia/commons/8/8a/Banana-Single.jpg" },
+      { id: 3, name: "Tomatoes", price: 20, image: "https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_je.jpg" },
+      { id: 4, name: "Carrot", price: 25, image: "https://upload.wikimedia.org/wikipedia/commons/c/c8/Carrots.jpg" }
+    ];
+
+    function login() {
+      const nameInput = document.getElementById('loginName').value.trim();
+      if (nameInput) {
+        userName = nameInput;
+        document.getElementById('greeting').innerText = `Hello, ${userName}! Happy Shopping 🧡`;
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('shop-section').classList.remove('hidden');
+        renderProducts();
+
+        // Send login data to backend
+        fetch('save_login.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username: nameInput })
+        })
+        .then(response => response.json())
+        .then(data => console.log('Login saved:', data))
+        .catch(error => console.error('Error:', error));
+      } else {
+        alert("Please enter your name to continue.");
+      }
+    }
+
+    function renderProducts() {
+      const productDiv = document.getElementById('products');
+      productDiv.innerHTML = "";
+      items.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'product';
+        itemDiv.innerHTML = `
+          <div class="product-info">
+            <img src="${item.image}" alt="${item.name}">
+            <span><strong>${item.name}</strong> - ₹${item.price}</span>
+          </div>
+          <button onclick="addToCart(${item.id})">Add to Cart</button>
+        `;
+        productDiv.appendChild(itemDiv);
+      });
+    }
+
+    function addToCart(id) {
+      const item = items.find(i => i.id === id);
+      cart.push(item);
+      renderCart();
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartDiv = document.getElementById('cart');
+      cartDiv.innerHTML = "";
+      if (cart.length === 0) {
+        cartDiv.innerText = "No items yet.";
+        return;
+      }
+
+      cart.forEach((item, index) => {
+        const cartItem = document.createElement('div');
+        cartItem.className = 'cart-item';
+        cartItem.innerHTML = `
+          <span>${item.name} - ₹${item.price}</span>
+          <button onclick="removeFromCart(${index})">Remove</button>
+        `;
+        cartDiv.appendChild(cartItem);
+      });
+
+      const total = cart.reduce((sum, item) => sum + item.price, 0);
+      const totalDiv = document.createElement('div');
+      totalDiv.className = 'total';
+      totalDiv.innerHTML = `Total: ₹${total}`;
+      cartDiv.appendChild(totalDiv);
+    }
+
+    function placeOrder() {
+      if (cart.length === 0) {
+        alert("Your cart is empty!");
+        return;
+      }
+      const total = cart.reduce((sum, item) => sum + item.price, 0);
+      alert(`${userName}, your order of ₹${total} is placed! 🧾`);
+      cart = [];
+      renderCart();
+    }
+  </script>
+
+</body>
+</html>
